@@ -10,6 +10,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.widget.Button;
@@ -18,6 +19,9 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
+
+import java.io.IOException;
+import java.net.URL;
 
 public class MainActivity extends AppCompatActivity {
     ImageView imageView;
@@ -28,6 +32,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        DatabaseHelper db = new DatabaseHelper(this);
+        int totalImg = db.getImgs().size();
 
         imageView = findViewById(R.id.image_capture);
         btnCameraActions = findViewById(R.id.btn_cameraActions);
@@ -43,8 +49,10 @@ public class MainActivity extends AppCompatActivity {
                     100);
         }
 //        https://manofmany.com/wp-content/uploads/2018/09/Tom-Shelby.jpg
+//        https://static.timesofisrael.com/www/uploads/2017/04/gal-gadot-1024x640.jpg
+        // https://znews-photo.zingcdn.me/w660/Uploaded/mfnuy/2022_11_06/ronaldo_manchester_united_8761.jpg
         btnCameraActions.setOnClickListener(view -> {
-            final String[]  options = {"Take photo","View a picture from Url"};
+            final String[]  options = {"Take photo","View a picture from Url","List Image"};
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setItems(options, (dialog, item) ->{
                 if(options[item] == "Take photo"){
@@ -54,13 +62,21 @@ public class MainActivity extends AppCompatActivity {
                 }else if(options[item] == "View a picture from Url"){
                     try {
                         String url = inputUrl.getText().toString();
+                        Image img = new Image(url);
+                        db.createImg(img);
                         Picasso.get()
                                 .load(url)
                                 .into(imageView);
                     }catch (Exception error){
                         Toast.makeText(this, "Invalid URL, please enter url again!", Toast.LENGTH_SHORT).show();
                     }
-
+                }else if(options[item] == "List Image"){
+                    if(totalImg < 1){
+                        Toast.makeText(this, "Dont have any image!", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    Intent listView = new Intent(MainActivity.this, ViewListImage.class);
+                    startActivity(listView);
                 }
             });
             builder.show();
@@ -73,6 +89,7 @@ public class MainActivity extends AppCompatActivity {
         if(requestCode == 100){
             //Get Capture Image
             Bitmap captureImage = (Bitmap) data.getExtras().get("data");
+
             //Set Capture Image to ImageView
             imageView.setImageBitmap(captureImage);
         }
